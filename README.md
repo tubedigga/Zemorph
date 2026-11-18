@@ -24,6 +24,12 @@ The plugin is a stereo insert. It does not load in MPC Software on a computer. T
 
 ## Installation
 
+The install folder is already in this repo. You do not need to compile it.
+
+Download `build/Tubedigga - VST - ZEMORPH` from the branch. On GitHub that path is:
+
+https://github.com/tubedigga/Zemorph/tree/cursor/zemorph-morph-filter-d103/build/Tubedigga%20-%20VST%20-%20ZEMORPH
+
 On the root of a USB stick, SD card, or the internal drive, create a folder named exactly `VST2 Plugins` if it is not there already.
 
 Copy the whole folder `Tubedigga - VST - ZEMORPH` into `VST2 Plugins`. The drive has to be inserted whenever you want the effect.
