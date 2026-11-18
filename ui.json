@@ -12,13 +12,13 @@
       "name": "MORPH",
       "controls": [
         { "param": "Morph", "widget": "knob" },
-        { "param": "Slide", "widget": "knob", "polarity": "bipolar" },
+        { "param": "Offset", "widget": "knob", "polarity": "bipolar" },
         { "param": "Depth", "widget": "knob" },
         { "param": "Output", "widget": "knob", "polarity": "bipolar" },
         { "param": "Frame A", "widget": "knob", "overlay": "menu" },
         { "param": "Frame B", "widget": "knob", "overlay": "menu" },
         { "param": "Guard", "widget": "switch" },
-        { "widget": "text", "text": "HELD steps the filter out" }
+        { "widget": "text", "text": "Held steps the filter out" }
       ]
     }
   ]

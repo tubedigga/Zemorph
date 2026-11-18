@@ -32,9 +32,9 @@ static void testRadiusGrid()
                     for (int di = 0; di <= 4; ++di) {
                         mpc::dsp::BiquadCoeffs c[zemorph::kSections];
                         const float morph = (float)mi / 8.0f;
-                        const float slide = (float)si * 12.0f;
+                        const float offset = (float)si * 12.0f;
                         const float depth = (float)di / 4.0f;
-                        zemorph::designCascade(a, b, morph, slide, depth, sr, c);
+                        zemorph::designCascade(a, b, morph, offset, depth, sr, c);
                         float mag = 1.0f;
                         for (int s = 0; s < zemorph::kSections; ++s) {
                             const float r = zemorph::poleRadius(c[s]);
@@ -82,14 +82,14 @@ static void testRadiusGrid()
 static void testEndpoints()
 {
     const double sr = 44100.0;
-    mpc::dsp::BiquadCoeffs slid[zemorph::kSections];
+    mpc::dsp::BiquadCoeffs shifted[zemorph::kSections];
     mpc::dsp::BiquadCoeffs aOnly[zemorph::kSections];
     mpc::dsp::BiquadCoeffs bOnly[zemorph::kSections];
     mpc::dsp::BiquadCoeffs ignoreB[zemorph::kSections];
     zemorph::designCascade(0, 7, 0.0f, 0.0f, 1.0f, sr, aOnly);
     zemorph::designCascade(0, 0, 0.0f, 0.0f, 1.0f, sr, ignoreB);
     zemorph::designCascade(0, 7, 1.0f, 0.0f, 1.0f, sr, bOnly);
-    zemorph::designCascade(0, 7, 0.0f, 3.0f, 1.0f, sr, slid);
+    zemorph::designCascade(0, 7, 0.0f, 3.0f, 1.0f, sr, shifted);
     bool same = true;
     for (int s = 0; s < zemorph::kSections; ++s) {
         if (std::fabs(aOnly[s].b0 - ignoreB[s].b0) > 1.0e-5f) same = false;
@@ -99,8 +99,8 @@ static void testEndpoints()
     expect(same, "morph 0 matches frame A and ignores frame B");
     bool moved = false;
     for (int s = 0; s < zemorph::kSections; ++s)
-        if (std::fabs(aOnly[s].a1 - slid[s].a1) > 1.0e-3f) moved = true;
-    expect(moved, "slide moves the coefficients");
+        if (std::fabs(aOnly[s].a1 - shifted[s].a1) > 1.0e-3f) moved = true;
+    expect(moved, "offset moves the coefficients");
 
     mpc::dsp::BiquadCoeffs flat[zemorph::kSections];
     zemorph::designCascade(1, 5, 0.4f, -6.0f, 0.0f, sr, flat);
@@ -116,6 +116,39 @@ static void testEndpoints()
     for (int s = 0; s < zemorph::kSections; ++s)
         if (std::fabs(aOnly[s].a1 - bOnly[s].a1) > 1.0e-3f) differs = true;
     expect(differs, "frame B is a different shape from frame A");
+}
+
+static void testCharacter()
+{
+    // Full depth, no offset. v1's frames barely moved the level. Each frame
+    // here has to push or cut by at least 8 dB somewhere, still after the
+    // cascade ceiling has done its job.
+    const double sr = 44100.0;
+    const float nyquist = 0.45f * (float)sr;
+    int strong = 0;
+    for (int a = 0; a < zemorph::kShapes; ++a) {
+        mpc::dsp::BiquadCoeffs c[zemorph::kSections];
+        zemorph::designCascade(a, a, 0.0f, 0.0f, 1.0f, sr, c);
+        float peak = 0.0f;
+        float dip = 1.0e6f;
+        for (int i = 0; i < 96; ++i) {
+            const float hz = 40.0f * std::pow(nyquist / 40.0f, (float)i / 95.0f);
+            const float w = 2.0f * mpc::dsp::kPi * hz / (float)sr;
+            float m = 1.0f;
+            for (int s = 0; s < zemorph::kSections; ++s)
+                m *= zemorph::sectionMagnitude(c[s], w);
+            if (m > peak) peak = m;
+            if (m < dip) dip = m;
+        }
+        const float peakDb = 20.0f * std::log10(peak > 1.0e-8f ? peak : 1.0e-8f);
+        const float dipDb = 20.0f * std::log10(dip > 1.0e-8f ? dip : 1.0e-8f);
+        std::printf("shape %d %-9s peak %+.1f dB  dip %+.1f dB\n",
+                    a, zemorph::kShapeNames[a], peakDb, dipDb);
+        if (peakDb >= 8.0f || dipDb <= -8.0f)
+            ++strong;
+        expect(std::isfinite(peakDb) && std::isfinite(dipDb), "shape response is finite");
+    }
+    expect(strong == zemorph::kShapes, "every frame moves the level by at least 8 dB");
 }
 
 static void testDetector()
@@ -178,6 +211,7 @@ int main()
 {
     testRadiusGrid();
     testEndpoints();
+    testCharacter();
     testDetector();
     testTime();
     if (gFails) {

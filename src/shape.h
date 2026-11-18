@@ -3,7 +3,7 @@
 // Each shape is four biquad sections (peaks and dips) baked as centre
 // frequency, width and amount. The morph control blends section A into
 // section B by interpolating those coefficients, then the result is
-// pulled back inside a safe pole radius. Slide shifts every centre
+// pulled back inside a safe pole radius. Offset shifts every centre
 // before that blend, so the whole current shape moves together.
 // Depth scales the baked cuts and boosts toward flat.
 //
@@ -47,24 +47,27 @@ inline const char* const kShapeNames[kShapes] = {
     "Wide",
 };
 
-// Home frequencies, before Slide. Positive dB boosts, negative dB dips.
+// Home frequencies, before Offset. Positive dB boosts, negative dB dips.
+// Amounts sit on the gain cap and the notches are narrow. The pole-radius
+// and cascade ceilings still pull anything unsafe back in.
 inline constexpr Section kShape[kShapes][kSections] = {
-    // Two Peak — two lifts with a dip between them.
-    { {280.0f, 1.6f, 8.0f}, {720.0f, 2.0f, -7.0f}, {1680.0f, 1.7f, 9.0f}, {4400.0f, 1.1f, 3.0f} },
-    // Comb — alternating lifts and dips up the spectrum.
-    { {320.0f, 3.2f, 8.0f}, {640.0f, 3.2f, -9.0f}, {1280.0f, 3.0f, 8.0f}, {2560.0f, 2.6f, -7.0f} },
-    // Formant — three close lifts, a small dip above them.
-    { {620.0f, 2.6f, 9.0f}, {1100.0f, 3.0f, 7.0f}, {2400.0f, 2.2f, 6.0f}, {3600.0f, 1.4f, -3.0f} },
-    // Nasal — a narrow mid lift with the lows and the air pulled back.
-    { {420.0f, 1.3f, -5.0f}, {1050.0f, 4.0f, 10.0f}, {1850.0f, 3.4f, 7.0f}, {4300.0f, 1.2f, -6.0f} },
-    // Hollow — deep scoops, a small lift left in the middle.
-    { {240.0f, 1.0f, -10.0f}, {860.0f, 1.5f, 5.0f}, {2100.0f, 1.4f, -11.0f}, {5600.0f, 0.9f, 4.0f} },
-    // Bright — weight comes off the bottom, the top lifts.
-    { {200.0f, 0.7f, -6.0f}, {900.0f, 1.0f, 1.0f}, {2800.0f, 1.3f, 7.0f}, {6800.0f, 1.0f, 8.0f} },
-    // Dark — low lift, top pulled down.
-    { {150.0f, 0.8f, 8.0f}, {400.0f, 1.1f, 5.0f}, {1700.0f, 1.0f, -6.0f}, {5200.0f, 0.8f, -10.0f} },
-    // Wide — two broad humps, the picture of frame B.
-    { {340.0f, 0.7f, 7.0f}, {980.0f, 0.55f, -2.0f}, {2300.0f, 0.7f, 7.0f}, {6200.0f, 0.5f, -1.0f} },
+    // Two Peak — a low lift, a hole, then two sharp peaks.
+    { {160.0f, 0.8f, 12.0f}, {480.0f, 5.0f, -12.0f}, {1400.0f, 5.0f, 12.0f}, {3600.0f, 5.5f, 12.0f} },
+    // Comb — alternating notches and peaks up the mids.
+    { {400.0f, 6.0f, -12.0f}, {800.0f, 5.5f, 12.0f}, {1600.0f, 6.0f, -12.0f}, {3200.0f, 6.0f, 12.0f} },
+    // Formant — three strong vowel peaks, the bottom pulled out.
+    { {180.0f, 0.7f, -10.0f}, {700.0f, 4.5f, 12.0f}, {1600.0f, 5.0f, 12.0f}, {3200.0f, 5.0f, 11.0f} },
+    // Nasal — lows and air gone, a hard mid spike.
+    { {150.0f, 0.8f, -12.0f}, {1000.0f, 5.5f, 12.0f}, {1800.0f, 6.0f, 12.0f}, {5500.0f, 2.0f, -12.0f} },
+    // Hollow — deep scoops, one thin peak left standing.
+    { {220.0f, 2.0f, -12.0f}, {700.0f, 4.0f, -12.0f}, {1800.0f, 3.5f, 10.0f}, {5000.0f, 4.0f, -12.0f} },
+    // Bright — the bottom is gone, presence and air are up.
+    { {140.0f, 0.7f, -12.0f}, {600.0f, 2.5f, -12.0f}, {3500.0f, 4.0f, 12.0f}, {8000.0f, 3.0f, 12.0f} },
+    // Dark — one heavy low lift. The rest is cut, kept apart so the
+    // lifts do not stack past the cascade ceiling.
+    { {120.0f, 0.7f, 12.0f}, {800.0f, 2.0f, -8.0f}, {2500.0f, 4.0f, -12.0f}, {6000.0f, 3.0f, -10.0f} },
+    // Wide — two strong humps far apart, a hole between them.
+    { {250.0f, 1.2f, 12.0f}, {900.0f, 3.5f, -12.0f}, {2600.0f, 2.2f, 12.0f}, {7000.0f, 1.6f, -8.0f} },
 };
 
 inline float poleRadius(const mpc::dsp::BiquadCoeffs& c)
@@ -129,7 +132,7 @@ inline float resonanceCeiling(float hz, float gainDb, double sampleRate)
     return qMax;
 }
 
-inline mpc::dsp::BiquadCoeffs designSection(const Section& src, float slideSemitones,
+inline mpc::dsp::BiquadCoeffs designSection(const Section& src, float offsetSemitones,
                                             float depth, double sampleRate)
 {
     using mpc::dsp::BiquadCoeffs;
@@ -139,7 +142,7 @@ inline mpc::dsp::BiquadCoeffs designSection(const Section& src, float slideSemit
     if (std::fabs(gain) < 0.05f || !(sampleRate > 1.0))
         return BiquadCoeffs::identity();
     const float nyquist = 0.45f * (float)sampleRate;
-    float hz = src.hz * semitonesToRatio(slideSemitones);
+    float hz = src.hz * semitonesToRatio(offsetSemitones);
     hz = clamp(hz, 35.0f, nyquist);
     float q = src.q;
     const float qMax = resonanceCeiling(hz, gain, sampleRate);
@@ -221,7 +224,7 @@ inline void capCascade(mpc::dsp::BiquadCoeffs* sections, double sampleRate)
 }
 
 // morph 0 = frame A, morph 1 = frame B. depth 0 = flat, depth 1 = full shape.
-inline void designCascade(int frameA, int frameB, float morph, float slideSemitones,
+inline void designCascade(int frameA, int frameB, float morph, float offsetSemitones,
                           float depth, double sampleRate, mpc::dsp::BiquadCoeffs* out)
 {
     using mpc::dsp::clamp;
@@ -229,10 +232,10 @@ inline void designCascade(int frameA, int frameB, float morph, float slideSemito
     frameB = clamp(frameB, 0, kShapes - 1);
     morph = clamp(morph, 0.0f, 1.0f);
     depth = clamp(depth, 0.0f, 1.0f);
-    slideSemitones = clamp(slideSemitones, -24.0f, 24.0f);
+    offsetSemitones = clamp(offsetSemitones, -24.0f, 24.0f);
     for (int s = 0; s < kSections; ++s) {
-        const mpc::dsp::BiquadCoeffs a = designSection(kShape[frameA][s], slideSemitones, depth, sampleRate);
-        const mpc::dsp::BiquadCoeffs b = designSection(kShape[frameB][s], slideSemitones, depth, sampleRate);
+        const mpc::dsp::BiquadCoeffs a = designSection(kShape[frameA][s], offsetSemitones, depth, sampleRate);
+        const mpc::dsp::BiquadCoeffs b = designSection(kShape[frameB][s], offsetSemitones, depth, sampleRate);
         out[s] = lerpCoeffs(a, b, morph);
     }
     capCascade(out, sampleRate);

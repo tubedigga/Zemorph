@@ -1004,7 +1004,7 @@
                 "key": "Parameter 6",
                 "value": [
                     "Live",
-                    "HELD"
+                    "Held"
                 ]
             }
         ],
@@ -1070,7 +1070,7 @@
                             "version": 2,
                             "componentData": {
                                 "version": 1,
-                                "name": "Slide",
+                                "name": "Offset",
                                 "type": "knobBi",
                                 "data": {
                                     "version": 1,
@@ -1261,7 +1261,7 @@
                                         "case": "Original"
                                     },
                                     "type": "Text",
-                                    "handleName": "Data",
+                                    "handleName": "Invalid",
                                     "text": "Live"
                                 }
                             },
@@ -1272,7 +1272,7 @@
                             "bounds": {
                                 "version": 1,
                                 "acceptsHWFocus": "No",
-                                "showWhenDataModelInvalid": "Hide",
+                                "showWhenDataModelInvalid": "Show",
                                 "whenVisible": "Always",
                                 "boundsType": "Absolute",
                                 "bounds": "678 250 122 40"
@@ -1299,8 +1299,8 @@
                                         "case": "Original"
                                     },
                                     "type": "Text",
-                                    "handleName": "Data",
-                                    "text": "HELD"
+                                    "handleName": "Invalid",
+                                    "text": "Held"
                                 }
                             },
                             "handle remapping": {
@@ -1310,7 +1310,7 @@
                             "bounds": {
                                 "version": 1,
                                 "acceptsHWFocus": "No",
-                                "showWhenDataModelInvalid": "Hide",
+                                "showWhenDataModelInvalid": "Show",
                                 "whenVisible": "Always",
                                 "boundsType": "Absolute",
                                 "bounds": "804 250 122 40"
@@ -1338,7 +1338,7 @@
                                     },
                                     "type": "Text",
                                     "handleName": "Data",
-                                    "text": "HELD steps the filter out"
+                                    "text": "Held steps the filter out"
                                 }
                             },
                             "handle remapping": {

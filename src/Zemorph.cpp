@@ -1,14 +1,14 @@
 // ZEMORPH — a morphing filter that blends two fixed frequency shapes.
 //
 // Stereo insert for MPC OS 3.10.1 and later. Two frames are picked from
-// a fixed list. Morph blends frame A into frame B. Slide moves the whole
+// a fixed list. Morph blends frame A into frame B. Offset moves the whole
 // blended shape. Depth sets how hard the cuts and boosts are. Output is
 // the makeup gain.
 //
 // Safety stays on: poles are kept inside a fixed radius, resonance has a
 // ceiling, a peak detector ducks the output, a ceiling limiter follows,
 // and if the filter level keeps rising the filter steps out. Guard on
-// the screen flips to HELD. Turn it back to Live to try again.
+// the screen flips to Held. Turn it back to Live to try again.
 //
 // process() does not allocate, lock, log, or touch the disk. The
 // framework flushes denormals around the call.
@@ -26,7 +26,7 @@ public:
     enum Params
     {
         kMorph = 0,   // parameter 0 is continuous; the host wiggles it on prepare
-        kSlide,
+        kOffset,
         kDepth,
         kOutput,
         kFrameA,
@@ -46,7 +46,7 @@ public:
     {
         using namespace mpc;
         addParam(floatParam("morph", "Morph", 0.0f, 100.0f, 0.0f, "%", 0));
-        addParam(floatParam("slide", "Slide", -24.0f, 24.0f, 0.0f, "st", 1));
+        addParam(floatParam("offset", "Offset", -24.0f, 24.0f, 0.0f, "st", 1));
         addParam(floatParam("depth", "Depth", 0.0f, 100.0f, 75.0f, "%", 0));
         addParam(floatParam("output", "Output", -18.0f, 18.0f, 0.0f, "dB", 1));
 
@@ -56,7 +56,7 @@ public:
             frames.emplace_back(zemorph::kShapeNames[i]);
         addParam(choiceParam("framea", "Frame A", frames, 0));
         addParam(choiceParam("frameb", "Frame B", std::move(frames), zemorph::kShapes - 1));
-        addParam(choiceParam("guard", "Guard", {"Live", "HELD"}, 0));
+        addParam(choiceParam("guard", "Guard", {"Live", "Held"}, 0));
         if (numParams() != kNumParams) mpc::log("ZEMORPH: parameter count mismatch");
 
         // Plain values follow the parameter order above.
@@ -97,7 +97,7 @@ public:
 
     void parameterChanged(int index, float plainValue) override
     {
-        // Live is the clear. HELD is only a flag, whether the user set it
+        // Live is the clear. Held is only a flag, whether the user set it
         // or the detector did. Nothing else here has a side effect, and
         // parameter 0 (Morph) in particular does not.
         if (index == kGuard && plainValue < 0.5f)
@@ -234,7 +234,7 @@ private:
         info.name = "ZEMORPH";
         info.vendor = "Tubedigga";
         info.uniqueId = MPC_FOURCC('T', 'T', '1', 'e');
-        info.version = 1000;
+        info.version = 1100;
         info.isInstrument = false;
         info.numInputs = 2;
         info.numOutputs = 2;
@@ -253,9 +253,9 @@ private:
     void designBlock(float /*frames*/)
     {
         const float morph = get(kMorph) * 0.01f;
-        const float slide = get(kSlide);
+        const float offset = get(kOffset);
         const float depth = get(kDepth) * 0.01f;
-        zemorph::designCascade(getInt(kFrameA), getInt(kFrameB), morph, slide, depth,
+        zemorph::designCascade(getInt(kFrameA), getInt(kFrameB), morph, offset, depth,
                                sampleRate_, target_);
     }
 
