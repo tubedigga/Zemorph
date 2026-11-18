@@ -1,0 +1,11 @@
+# Local build products. The install folder is tracked so it can be
+# downloaded and copied onto an MPC without compiling.
+build/*
+!build/Tubedigga - VST - ZEMORPH/
+.sdk-tools/
+*.o
+*.so
+!build/Tubedigga - VST - ZEMORPH/VST/*.so
+*.dylib
+*.dll
+.DS_Store

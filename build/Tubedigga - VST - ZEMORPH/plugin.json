@@ -1,0 +1,17 @@
+{
+  "name": "ZEMORPH",
+  "manufacturer": "Tubedigga",
+  "version": "1.1.0",
+  "format": "vst2",
+  "kind": "effect",
+  "uid": "TT1e",
+  "numInputs": 2,
+  "numOutputs": 2,
+  "category": "Effect",
+  "file32": "VST/zemorph-arm32.so",
+  "file64": "VST/zemorph-arm64.so",
+  "description": "ZEMORPH. A morphing filter that blends two fixed frequency shapes.",
+  "author": "Tubedigga",
+  "url": "https://www.tubedigga.com",
+  "license": "MIT"
+}
